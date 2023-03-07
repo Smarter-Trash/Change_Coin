@@ -14,26 +14,27 @@ int ans[5] = {0,0,0,0,0};//count_coin_5,count_coin_1,status_5,status_1,debt
 
 void setup()
 {
-  Serial.begin(115200);
+  /*Serial.begin(115200);
   servo_five.attach(13); //เหรียญ 5
   servo_one.attach(04); //เหรียญ 1
 
   servo_five.write(90); // สั่งให้ Servo หมุนไปองศาที่ 90
   delay(1000); // หน่วงเวลา 1000ms
   servo_one.write(90); // สั่งให้ Servo หมุนไปองศาที่ 90
-  delay(1000); // หน่วงเวลา 1000ms
+  delay(1000); // หน่วงเวลา 1000ms*/
 }
 
 void loop()
 {
-  printf("status_five: ");
-  scanf("%d",&status_five);
-  printf("status_one: ");
-  scanf("%d",&status_one);
-  printf("How much: ");
-  scanf("%d",&cost);
-  Change_Coin(cost);
-  for(int i=0;i<ans[0];i++) {
+  //printf("status_five: ");
+  //scanf("%d",&status_five);
+  //printf("status_one: ");
+  //scanf("%d",&status_one);
+  //printf("How much: ");
+  //scanf("%d",&cost);
+  Serial.println(ans[0]);
+  Serial.println(ans[1]);
+  /*for(int i=0;i<ans[0];i++) {
     servo_five.write(0); // สั่งให้ Servo หมุนไปองศาที่ 0 ปัด
     delay(1000); // หน่วงเวลา 1000ms
     servo_five.write(90); // สั่งให้ Servo หมุนไปองศาที่ 90
@@ -46,18 +47,18 @@ void loop()
     servo_one.write(90); // สั่งให้ Servo หมุนไปองศาที่ 90
     delay(1000); // หน่วงเวลา 1000ms
     printf("count_coin_1 = %d\n",j);
-  }
+  } */
   /*Serial.print("status_5 = %d\n",ans[2]);
   Serial.print("status_1 = %d\n",ans[3]);
   Serial.print("debt = %d\n",ans[4]);*/
 }
 
-void Change_Coin(int cost) {
+int* Change_Coin(int cost) {
   ans[0]=3;
   ans[1]=1;  
   ans[2]=0;  
   ans[3]=0;  
-  ans[4]=0;  
+  ans[4]=0;    
   /*while (1){
     int five = 0,one = 0,cost = 0;
     int countt = 0,debt = 0;
