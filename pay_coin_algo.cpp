@@ -11,6 +11,7 @@ int ans[5] = {0,0,0,0,0};//count_coin_5,count_coin_1,status_5,status_1,debt
 
 int main() {
   while (1){
+    scanf("cost: %d",&cost);
     int five = 0,one = 0;
     int countt = 0,debt = 0;
     if (roundd == 0) {
@@ -135,7 +136,7 @@ int main() {
       printf("debt = %d\n",ans[4]);
       printf("-------------------------------------\n");
       printf("the rest 5 = %d coin and 1 = %d coin\n",coin_five,coin_one);
-      printf("----------------#Next------------------\n")
+      printf("----------------#Next------------------\n");
     }else if (coin_five <= 0 && coin_one > 0) { //5 บาทหมด 1 บาทเหลือ
       one = cost;
       coin_five = 0;
