@@ -11,15 +11,15 @@ int coin_five = 20;
 int coin_one = 20;
 int status_five = 1;
 int status_one = 1;
-int roundd;
 int cost;
 int ans[5] = {0,0,0,0,0};//count_coin_5,count_coin_1,status_5,status_1,debt
 
 // REPLACE WITH THE RECEIVER'S MAC Address
 uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 uint8_t NinaAddress[] = {0x3C, 0x61, 0x05, 0x03, 0x42, 0x70};
-uint8_t NunAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-uint8_t ViewAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+uint8_t NunAddress[] = {0xA4, 0xCF, 0x12, 0x8F, 0xBA, 0x18};
+uint8_t ViewAddress[] = {0xA4, 0xCF, 0x12, 0x8F, 0xCA, 0x28};
+uint8_t PatAddress[] = {0x3C, 0x61, 0x05, 0x03, 0xD5, 0x9C};
 
 typedef struct pay_coin { //รับจากพัช
   int state;
@@ -30,11 +30,10 @@ typedef struct call_end { //ส่งให้นีน่า
   int state;
 }call_end;
 
-typedef struct have_bebt { //ส่งให้นัน
+typedef struct have_bebt { //ส่งให้นัน รับจากนัน
   int state;
   int debt;
 }have_bebt;
-
 
 typedef struct state_coin { //ส่งให้วิว อาจจะรับจากวิวด้วย
   int state;
@@ -51,13 +50,24 @@ state_coin scoin;
 // Create peer interface
 esp_now_peer_info_t peerInfo;
 
-void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
+bool compareMac(uint8_t * a, uint8_t * b){
+  for(int i=0;i<6;i++){
+    if(a[i]!=b[i])
+      return false;    
+  }
+  return true;
+}
+
+void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {  
   char macStr[18];
+  //String jj;
   Serial.print("Packet received from: ");
   snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
            mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
   Serial.println(macStr);
-  if (mac_addr[0] == 0x3C && mac_addr[1] == 0x61 && mac_addr[2] == 0x05 && mac_addr[3] == 0x03 && mac_addr[4] == 0x68 && mac_addr[5] == 0x74) {//ยังไม่ใช่ของพัช
+  //if(strcmp((const char*)NinaAddress, (const char*)mac_addr) == 0)
+  if(compareMac(mac_addr,PatAddress)){
+  //if (mac_addr[0] == 0x3C && mac_addr[1] == 0x61 && mac_addr[2] == 0x05 && mac_addr[3] == 0x03 && mac_addr[4] == 0xD5 && mac_addr[5] == 0x9C) {//ส่งพัช
     memcpy(&Datacost, incomingData, sizeof(Datacost));
     cost = Datacost.cost;
     Change_Coin();
@@ -98,6 +108,43 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
         Serial.println("Error sending staus_12 to View");
       }
     }
+  }
+  if(compareMac(mac_addr,NunAddress)){
+  //if (mac_addr[0] == 0xA4 && mac_addr[1] == 0xCF && mac_addr[2] == 0x12 && mac_addr[3] == 0x8F && mac_addr[4] == 0xBA && mac_addr[5] == 0x18) { //รับมาจากนัน 
+    memcpy(&hbedt, incomingData, sizeof(hbedt));
+    cost = hbedt.debt;
+    Change_Coin();
+    if (ans[4] == 0) {
+      Servo_coin();      
+      ending.state = 5;
+      hbedt.state = 10;
+      hbedt.debt = ans[4];
+      esp_err_t result = esp_now_send(NinaAddress, (uint8_t *) &ending, sizeof(ending)); 
+      if (result == ESP_OK) {
+        Serial.println("Sent state_5 to Nina with success");
+      }else {
+        Serial.println("Error sending staus_5 to Nina");
+      }
+      esp_err_t result_debt = esp_now_send(NunAddress, (uint8_t *) &hbedt, sizeof(hbedt)); 
+      if (result_debt == ESP_OK) {
+        Serial.println("Sent state_10 to Nun with success");
+      }else {
+        Serial.println("Error sending staus_10 to Nun");
+      }
+    }else {
+      ending.state = 9;
+      esp_err_t result = esp_now_send(NinaAddress, (uint8_t *) &ending, sizeof(ending)); 
+      if (result == ESP_OK) {
+        Serial.println("Sent state_9 to Nina with success");
+      }else {
+        Serial.println("Error sending staus_9 to Nina");
+      }
+    }
+  }
+  if(compareMac(mac_addr,ViewAddress)){
+  //if (mac_addr[0] == 0xA4 && mac_addr[1] == 0xCF && mac_addr[2] == 0x12 && mac_addr[3] == 0x8F && mac_addr[4] == 0xCA && mac_addr[5] == 0x28) { //รับมาจากวิว
+    memcpy(&scoin, incomingData, sizeof(scoin));
+    Fill_coin();
   }
 }
 
@@ -161,6 +208,23 @@ void loop()
   
 }
 
+void Fill_coin() {
+  if (status_one == 0) {
+    status_one = 1;
+    coin_one = 20;
+  }
+  if (status_five == 0) {
+    status_five = 1;
+    coin_five = 20;
+  }
+  //scanf("%d",&status_five);
+  //scanf("%d",&status_one); //เปลี่ยนเป็นรับค่าจากบอร์ดอื่น
+  printf("status_five: %d",status_five);
+  printf("status_one: %d",status_one);
+  printf("coin_five: %d",coin_five);
+  printf("coin_one: %d",coin_one);
+}
+
 void Change_Coin() {
   /*
   ans[0]=3;
@@ -172,22 +236,6 @@ void Change_Coin() {
   while (1){
     int five = 0,one = 0;
     int countt = 0,debt = 0;
-    if (roundd == 0) {
-      if (status_one == 0) {
-        status_one = 1;
-        coin_one = 20;
-      }
-      if (status_five == 0) {
-        status_five = 1;
-        coin_five = 20;
-      }
-      //scanf("%d",&status_five);
-      //scanf("%d",&status_one); //เปลี่ยนเป็นรับค่าจากบอร์ดอื่น
-      printf("status_five: %d",status_five);
-      printf("status_one: %d",status_one);
-      printf("coin_five: %d",coin_five);
-      printf("coin_one: %d",coin_one);
-    }
     if  (coin_five > 0 && coin_one <= 0) { //5 บาทเหลือ 1 บาทหมด
       five = floor(cost/5);
       coin_one = 0;
@@ -199,7 +247,6 @@ void Change_Coin() {
           coin_five = 0;
           status_five = 0;
           printf("No have 5 coin and 1 coin\n");
-          roundd = 0;
           ans[1] = one;
           ans[2] = status_five;
           ans[3] = status_one;
@@ -220,7 +267,6 @@ void Change_Coin() {
           status_five = 0;
         }
         printf("No have 1 coin\n");
-        roundd++;
         ans[0] = five;
         ans[1] = one;
         ans[2] = status_five;
@@ -242,7 +288,6 @@ void Change_Coin() {
           coin_five = 0;
           status_five = 0;
           printf("No have 5 coin and 1 coin\n");
-          roundd = 0;
           ans[1] = one;
           ans[2] = status_five;
           ans[3] = status_one;
@@ -263,7 +308,6 @@ void Change_Coin() {
           status_five = 0;
         }
         printf("No have 1 coin\n");
-        roundd++;
         ans[0] = five;
         ans[1] = one;
         ans[2] = status_five;
@@ -285,7 +329,6 @@ void Change_Coin() {
       status_five = 0;
       status_one = 0;
       printf("No have 5 coin and 1 coin\n");
-      roundd = 0;
       ans[0] = five;
       ans[1] = one;
       ans[2] = status_five;
@@ -310,7 +353,6 @@ void Change_Coin() {
         coin_one = 0;
         status_one = 0;
         printf("No have 5 coin and 1 coin\n");
-        roundd = 0;
         ans[0] = five;
         ans[2] = status_five;
         ans[3] = status_one;
@@ -330,7 +372,6 @@ void Change_Coin() {
         status_one = 0;
       }
       printf("No have 5 coin\n");
-      roundd++;
       ans[0] = five;
       ans[1] = one;
       ans[2] = status_five;
@@ -358,7 +399,6 @@ void Change_Coin() {
           coin_one = 0;
           status_one = 0;
           printf("No have 5 coin and 1 coin\n");
-          roundd = 0;
           ans[2] = status_five;
           ans[3] = status_one;
           ans[4] = debt;
@@ -377,7 +417,6 @@ void Change_Coin() {
           status_one = 0;
         }
         printf("No have 5 coin\n");
-        roundd++;
         ans[1] = one;
         ans[2] = status_five;
         ans[3] = status_one;
@@ -403,7 +442,6 @@ void Change_Coin() {
           coin_one = 0;
           status_one = 0; 
           printf("No have and 1 coin\n");
-          roundd++;
           ans[0] = five;
           ans[2] = status_five;
           ans[3] = status_one;
@@ -422,7 +460,6 @@ void Change_Coin() {
         if (coin_one == 0){
           status_one = 0;
         }
-        roundd++;
         ans[0] = five;
         ans[1] = one;
         ans[2] = status_five;
