@@ -3,10 +3,15 @@
 #include <math.h>
 #include <esp_now.h>
 #include <WiFi.h>
+#include <HardwareSerial.h>
+
 
 //ประกาศตัวแปรแทน Servo
 Servo servo_five;
 Servo servo_one;
+esp_now_peer_info_t peerInfoview; // Create peer interface
+esp_now_peer_info_t peerInfonina;
+esp_now_peer_info_t peerInfonun;
 int coin_five = 20;
 int coin_one = 20;
 int status_five = 1;
@@ -19,7 +24,7 @@ uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 uint8_t NinaAddress[] = {0x3C, 0x61, 0x05, 0x03, 0x42, 0x70};
 uint8_t NunAddress[] = {0xA4, 0xCF, 0x12, 0x8F, 0xBA, 0x18};
 uint8_t ViewAddress[] = {0xA4, 0xCF, 0x12, 0x8F, 0xCA, 0x28};
-uint8_t PatAddress[] = {0x3C, 0x61, 0x05, 0x03, 0xD5, 0x9C};
+uint8_t PatAddress[] = {0x3C, 0x61, 0x05, 0x03, 0x68, 0x74};
 
 typedef struct pay_coin { //รับจากพัช
   int state;
@@ -30,12 +35,12 @@ typedef struct call_end { //ส่งให้นีน่า
   int state;
 }call_end;
 
-typedef struct have_bebt { //ส่งให้นัน รับจากนัน
+typedef struct have_bebt { //ส่งให้นัน รับจากนัน นีน่า 
   int state;
   int debt;
 }have_bebt;
 
-typedef struct state_coin { //ส่งให้วิว อาจจะรับจากวิวด้วย
+typedef struct state_coin { //ส่งให้วิว รับจากวิว 
   int state;
   int state_1;
   int state_5;
@@ -47,10 +52,8 @@ call_end ending;
 have_bebt hbedt;
 state_coin scoin;
 
-// Create peer interface
-esp_now_peer_info_t peerInfo;
 
-bool compareMac(uint8_t * a, uint8_t * b){
+bool compareMac(const uint8_t * a,const uint8_t * b){
   for(int i=0;i<6;i++){
     if(a[i]!=b[i])
       return false;    
@@ -67,30 +70,31 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
   Serial.println(macStr);
   //if(strcmp((const char*)NinaAddress, (const char*)mac_addr) == 0)
   if(compareMac(mac_addr,PatAddress)){
-  //if (mac_addr[0] == 0x3C && mac_addr[1] == 0x61 && mac_addr[2] == 0x05 && mac_addr[3] == 0x03 && mac_addr[4] == 0xD5 && mac_addr[5] == 0x9C) {//ส่งพัช
+  //if (mac_addr[0] == 0x3C && mac_addr[1] == 0x61 && mac_addr[2] == 0x05 && mac_addr[3] == 0x03 && mac_addr[4] == 0xD5 && mac_addr[5] == 0x9C) {//รับจากพัช
     memcpy(&Datacost, incomingData, sizeof(Datacost));
     cost = Datacost.cost;
     Change_Coin();
     Servo_coin();
     if (ans[4] == 0) {
-      ending.state = 5;
-      esp_err_t result = esp_now_send(NinaAddress, (uint8_t *) &ending, sizeof(ending)); 
+      ending.state = 11;
+      esp_err_t result = esp_now_send(NinaAddress, (uint8_t *) &ending, sizeof(ending));  //ส่งหานีน่า
       if (result == ESP_OK) {
-        Serial.println("Sent state_5 to Nina with success");
+        Serial.println("Sent state_11 to Nina with success");
       }else {
-        Serial.println("Error sending staus_5 to Nina");
+        Serial.println("Error sending staus_11 to Nina");
       }
     }else {
+      delay(2000);
       ending.state = 6;
       hbedt.state = 6;
       hbedt.debt = ans[4];      
-      esp_err_t result = esp_now_send(NinaAddress, (uint8_t *) &ending, sizeof(ending)); 
+      esp_err_t result = esp_now_send(NinaAddress, (uint8_t *) &ending, sizeof(ending)); //ส่งหานีน่า
       if (result == ESP_OK) {
         Serial.println("Sent state_6 to Nina with success");
       }else {
         Serial.println("Error sending staus_6 to Nina");
       }
-      esp_err_t result_debt = esp_now_send(NunAddress, (uint8_t *) &hbedt, sizeof(hbedt)); 
+      esp_err_t result_debt = esp_now_send(NunAddress, (uint8_t *) &hbedt, sizeof(hbedt)); //ส่งหานัน
       if (result_debt == ESP_OK) {
         Serial.println("Sent state_6 to Nun with success");
       }else {
@@ -101,7 +105,7 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
       scoin.state = 12;
       scoin.state_1 = status_one;
       scoin.state_5 = status_five;
-      esp_err_t result = esp_now_send(ViewAddress, (uint8_t *) &scoin, sizeof(scoin)); 
+      esp_err_t result = esp_now_send(ViewAddress, (uint8_t *) &scoin, sizeof(scoin));  //ส่งหาวิว
       if (result == ESP_OK) {
         Serial.println("Sent state_12 to View with success");
       }else {
@@ -116,16 +120,14 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
     Change_Coin();
     if (ans[4] == 0) {
       Servo_coin();      
-      ending.state = 5;
       hbedt.state = 10;
       hbedt.debt = ans[4];
-      esp_err_t result = esp_now_send(NinaAddress, (uint8_t *) &ending, sizeof(ending)); 
-      if (result == ESP_OK) {
-        Serial.println("Sent state_5 to Nina with success");
+      esp_err_t result = esp_now_send(NinaAddress, (uint8_t *) &hbedt, sizeof(hbedt)); //ส่งหานีน่า
+        Serial.println("Sent state_10 to Nina with success");
       }else {
-        Serial.println("Error sending staus_5 to Nina");
+        Serial.println("Error sending staus_10 to Nina");
       }
-      esp_err_t result_debt = esp_now_send(NunAddress, (uint8_t *) &hbedt, sizeof(hbedt)); 
+      esp_err_t result_debt = esp_now_send(NunAddress, (uint8_t *) &hbedt, sizeof(hbedt)); //ส่งหานัน
       if (result_debt == ESP_OK) {
         Serial.println("Sent state_10 to Nun with success");
       }else {
@@ -133,7 +135,7 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
       }
     }else {
       ending.state = 9;
-      esp_err_t result = esp_now_send(NinaAddress, (uint8_t *) &ending, sizeof(ending)); 
+      esp_err_t result = esp_now_send(NinaA0ddress, (uint8_t *) &ending, sizeof(ending)); //ส่งหานีน่า
       if (result == ESP_OK) {
         Serial.println("Sent state_9 to Nina with success");
       }else {
@@ -151,6 +153,7 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   Serial.print("\r\nLast Packet Send Status:\t");
   Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+  Serial.println(status);
 }
 
 void setup()
@@ -174,13 +177,30 @@ void setup()
   esp_now_register_send_cb(OnDataSent);
   
   // Register peer
-  memcpy(peerInfo.peer_addr, broadcastAddress, 6);
-  peerInfo.channel = 0;  
-  peerInfo.encrypt = false;
+  memcpy(peerInfoview.peer_addr, ViewAddress, 6);
+  peerInfoview.channel = 0;  
+  peerInfoview.encrypt = false;
   
   // Add peer        
-  if (esp_now_add_peer(&peerInfo) != ESP_OK){
-    Serial.println("Failed to add peer");
+  if (esp_now_add_peer(&peerInfoview) != ESP_OK){
+    Serial.println("Failed to add peer to View");
+    return;
+  }
+  memcpy(peerInfonina.peer_addr, NinaAddress, 6);
+  peerInfonina.channel = 0;  
+  peerInfonina.encrypt = false;
+  // Add peer        
+  if (esp_now_add_peer(&peerInfonina) != ESP_OK){
+    Serial.println("Failed to add peer to Nina");
+    return;
+  }
+  memcpy(peerInfonun.peer_addr, NunAddress, 6);
+  peerInfonun.channel = 0;  
+  peerInfonun.encrypt = false;
+  
+  // Add peer        
+  if (esp_now_add_peer(&peerInfonun) != ESP_OK){
+    Serial.println("Failed to add peer to Nun");
     return;
   }
 }
@@ -205,18 +225,27 @@ void Servo_coin()
 
 void loop()
 {
-  
+  /*
+  if (status_five == 0 || status_one == 0) {
+    scoin.state = 12;
+    scoin.state_1 = status_one;
+    scoin.state_5 = status_five;
+    esp_err_t result = esp_now_send(ViewAddress, (uint8_t *) &scoin, sizeof(scoin)); 
+    if (result == ESP_OK) {
+      Serial.println("Sent state_12 to View with success");
+    }else {
+      Serial.println("Error sending staus_12 to View");
+    }
+  }
+  delay(5000);
+  */
 }
 
 void Fill_coin() {
-  if (status_one == 0) {
-    status_one = 1;
-    coin_one = 20;
-  }
-  if (status_five == 0) {
-    status_five = 1;
-    coin_five = 20;
-  }
+  status_one = 1;
+  coin_one = 20;
+  status_five = 1;
+  coin_five = 20;
   //scanf("%d",&status_five);
   //scanf("%d",&status_one); //เปลี่ยนเป็นรับค่าจากบอร์ดอื่น
   printf("status_five: %d",status_five);
