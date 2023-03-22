@@ -35,7 +35,7 @@ typedef struct call_end { //ส่งให้นีน่า
   int state;
 }call_end;
 
-typedef struct have_bebt { //ส่งให้นัน รับจากนัน นีน่า 
+typedef struct have_bebt { //ส่งให้นัน รับจากนัน (นีน่า -> state 10) 
   int state;
   int debt;
 }have_bebt;
