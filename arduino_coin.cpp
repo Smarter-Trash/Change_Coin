@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include <ESP32Servo.h>
 //#include <stdio.h>
 #include <math.h>
@@ -60,6 +61,11 @@ bool compareMac(const uint8_t * a,const uint8_t * b){
   }
   return true;
 }
+
+void Servo_coin();
+void Change_Coin();
+void Fill_coin();
+
 
 void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {  
   char macStr[18];
