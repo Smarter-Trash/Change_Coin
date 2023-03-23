@@ -123,6 +123,7 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
       hbedt.state = 10;
       hbedt.debt = ans[4];
       esp_err_t result = esp_now_send(NinaAddress, (uint8_t *) &hbedt, sizeof(hbedt)); //ส่งหานีน่า
+      if (result == ESP_OK) {
         Serial.println("Sent state_10 to Nina with success");
       }else {
         Serial.println("Error sending staus_10 to Nina");
@@ -135,7 +136,7 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
       }
     }else {
       ending.state = 9;
-      esp_err_t result = esp_now_send(NinaA0ddress, (uint8_t *) &ending, sizeof(ending)); //ส่งหานีน่า
+      esp_err_t result = esp_now_send(NinaAddress, (uint8_t *) &ending, sizeof(ending)); //ส่งหานีน่า
       if (result == ESP_OK) {
         Serial.println("Sent state_9 to Nina with success");
       }else {
