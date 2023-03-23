@@ -41,7 +41,7 @@ typedef struct have_bebt { //ส่งให้นัน รับจากน�
   int debt;
 }have_bebt;
 
-typedef struct state_coin { //ส่งให้วิว รับจากวิว 
+typedef struct state_coin { //ส่งให้วิว 
   int state;
   int state_1;
   int state_5;
@@ -78,45 +78,49 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
   if(compareMac(mac_addr,PatAddress)){
   //if (mac_addr[0] == 0x3C && mac_addr[1] == 0x61 && mac_addr[2] == 0x05 && mac_addr[3] == 0x03 && mac_addr[4] == 0xD5 && mac_addr[5] == 0x9C) {//รับจากพัช
     memcpy(&Datacost, incomingData, sizeof(Datacost));
-    cost = Datacost.cost;
-    Change_Coin();
-    Servo_coin();
-    if (ans[4] == 0) {
-      ending.state = 11;
-      esp_err_t result = esp_now_send(NinaAddress, (uint8_t *) &ending, sizeof(ending));  //ส่งหานีน่า
-      if (result == ESP_OK) {
-        Serial.println("Sent state_11 to Nina with success");
+    if (Datacost.state == 4) {
+      cost = Datacost.cost;
+      Change_Coin();
+      Servo_coin();
+      if (ans[4] == 0) {
+        ending.state = 11;
+        esp_err_t result = esp_now_send(NinaAddress, (uint8_t *) &ending, sizeof(ending));  //ส่งหานีน่า
+        if (result == ESP_OK) {
+          Serial.println("Sent state_11 to Nina with success");
+        }else {
+          Serial.println("Error sending staus_11 to Nina");
+        }
       }else {
-        Serial.println("Error sending staus_11 to Nina");
+        delay(2000);
+        ending.state = 6;
+        hbedt.state = 6;
+        hbedt.debt = ans[4];      
+        esp_err_t result = esp_now_send(NinaAddress, (uint8_t *) &ending, sizeof(ending)); //ส่งหานีน่า
+        if (result == ESP_OK) {
+          Serial.println("Sent state_6 to Nina with success");
+        }else {
+          Serial.println("Error sending staus_6 to Nina");
+        }
+        esp_err_t result_debt = esp_now_send(NunAddress, (uint8_t *) &hbedt, sizeof(hbedt)); //ส่งหานัน
+        if (result_debt == ESP_OK) {
+          Serial.println("Sent state_6 to Nun with success");
+        }else {
+          Serial.println("Error sending staus_6 to Nun");
+        }
       }
-    }else {
-      delay(2000);
-      ending.state = 6;
-      hbedt.state = 6;
-      hbedt.debt = ans[4];      
-      esp_err_t result = esp_now_send(NinaAddress, (uint8_t *) &ending, sizeof(ending)); //ส่งหานีน่า
-      if (result == ESP_OK) {
-        Serial.println("Sent state_6 to Nina with success");
-      }else {
-        Serial.println("Error sending staus_6 to Nina");
+      if (status_five == 0 || status_one == 0) {
+        scoin.state = 12;
+        scoin.state_1 = status_one;
+        scoin.state_5 = status_five;
+        esp_err_t result = esp_now_send(ViewAddress, (uint8_t *) &scoin, sizeof(scoin));  //ส่งหาวิว
+        if (result == ESP_OK) {
+          Serial.println("Sent state_12 to View with success");
+        }else {
+          Serial.println("Error sending staus_12 to View");
+        }
       }
-      esp_err_t result_debt = esp_now_send(NunAddress, (uint8_t *) &hbedt, sizeof(hbedt)); //ส่งหานัน
-      if (result_debt == ESP_OK) {
-        Serial.println("Sent state_6 to Nun with success");
-      }else {
-        Serial.println("Error sending staus_6 to Nun");
-      }
-    }
-    if (status_five == 0 || status_one == 0) {
-      scoin.state = 12;
-      scoin.state_1 = status_one;
-      scoin.state_5 = status_five;
-      esp_err_t result = esp_now_send(ViewAddress, (uint8_t *) &scoin, sizeof(scoin));  //ส่งหาวิว
-      if (result == ESP_OK) {
-        Serial.println("Sent state_12 to View with success");
-      }else {
-        Serial.println("Error sending staus_12 to View");
-      }
+    } else if (Datacost.state == 13) {
+      Fill_coin();
     }
   }
   if(compareMac(mac_addr,NunAddress)){
@@ -150,11 +154,13 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
       }
     }
   }
+  /*
   if(compareMac(mac_addr,ViewAddress)){
   //if (mac_addr[0] == 0xA4 && mac_addr[1] == 0xCF && mac_addr[2] == 0x12 && mac_addr[3] == 0x8F && mac_addr[4] == 0xCA && mac_addr[5] == 0x28) { //รับมาจากวิว
     memcpy(&scoin, incomingData, sizeof(scoin));
     Fill_coin();
   }
+  */
 }
 
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
