@@ -5,6 +5,7 @@
 #include <esp_now.h>
 #include <WiFi.h>
 #include <HardwareSerial.h>
+#include <iostream>
 
 
 //ประกาศตัวแปรแทน Servo
@@ -13,12 +14,14 @@ Servo servo_one;
 esp_now_peer_info_t peerInfoview; // Create peer interface
 esp_now_peer_info_t peerInfonina;
 esp_now_peer_info_t peerInfonun;
-int coin_five = 20;
-int coin_one = 20;
+int coin_five = 1;
+int coin_one = 2;
 int status_five = 1;
 int status_one = 1;
 int cost;
 int ans[5] = {0,0,0,0,0};//count_coin_5,count_coin_1,status_5,status_1,debt
+int degree_one = 0;
+int degree_five = 0;
 
 // REPLACE WITH THE RECEIVER'S MAC Address
 uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
@@ -76,8 +79,11 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
   Serial.println(macStr);
   //if(strcmp((const char*)NinaAddress, (const char*)mac_addr) == 0)
   if(compareMac(mac_addr,PatAddress)){
-  //if (mac_addr[0] == 0x3C && mac_addr[1] == 0x61 && mac_addr[2] == 0x05 && mac_addr[3] == 0x03 && mac_addr[4] == 0xD5 && mac_addr[5] == 0x9C) {//รับจากพัช
+  //if (mac_addr[0()] == 0x3C && mac_addr[1] == 0x61 && mac_addr[2] == 0x05 && mac_addr[3] == 0x03 && mac_addr[4] == 0x68 && mac_addr[5] == 0x74) {//รับจากพัช
     memcpy(&Datacost, incomingData, sizeof(Datacost));
+    printf("Into if with address");
+    std::cout << (int)mac_addr << "-->" << (int)PatAddress << "\n";
+    printf("%d\n",Datacost.state);
     if (Datacost.state == 4) {
       cost = Datacost.cost;
       Change_Coin();
@@ -120,8 +126,7 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
         }
       }
     } else if (Datacost.state == 13) {
-      Fill_coin();
-    }
+        Fill_coin();}
   }
   if(compareMac(mac_addr,NunAddress)){
   //if (mac_addr[0] == 0xA4 && mac_addr[1] == 0xCF && mac_addr[2] == 0x12 && mac_addr[3] == 0x8F && mac_addr[4] == 0xBA && mac_addr[5] == 0x18) { //รับมาจากนัน 
@@ -132,12 +137,14 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
       Servo_coin();      
       hbedt.state = 10;
       hbedt.debt = ans[4];
+      /*
       esp_err_t result = esp_now_send(NinaAddress, (uint8_t *) &hbedt, sizeof(hbedt)); //ส่งหานีน่า
       if (result == ESP_OK) {
         Serial.println("Sent state_10 to Nina with success");
       }else {
         Serial.println("Error sending staus_10 to Nina");
       }
+      */
       esp_err_t result_debt = esp_now_send(NunAddress, (uint8_t *) &hbedt, sizeof(hbedt)); //ส่งหานัน
       if (result_debt == ESP_OK) {
         Serial.println("Sent state_10 to Nun with success");
@@ -154,13 +161,13 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
       }
     }
   }
-  /*
-  if(compareMac(mac_addr,ViewAddress)){
+  
+  /*if(compareMac(mac_addr,ViewAddress)){
   //if (mac_addr[0] == 0xA4 && mac_addr[1] == 0xCF && mac_addr[2] == 0x12 && mac_addr[3] == 0x8F && mac_addr[4] == 0xCA && mac_addr[5] == 0x28) { //รับมาจากวิว
-    memcpy(&scoin, incomingData, sizeof(scoin));
+    //memcpy(&scoin, incomingData, sizeof(scoin));
     Fill_coin();
-  }
-  */
+  }*/
+  
 }
 
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
@@ -174,9 +181,9 @@ void setup()
   Serial.begin(115200);
   servo_five.attach(13); //เหรียญ 5
   servo_one.attach(04); //เหรียญ 1
-  servo_five.write(90); // สั่งให้ Servo หมุนไปองศาที่ 90
+  servo_five.write(0); // สั่งให้ Servo หมุนไปองศาที่ 90
   delay(1000); // หน่วงเวลา 1000ms
-  servo_one.write(90); // สั่งให้ Servo หมุนไปองศาที่ 90
+  servo_one.write(0); // สั่งให้ Servo หมุนไปองศาที่ 90
   delay(1000); // หน่วงเวลา 1000ms
   WiFi.mode(WIFI_STA);
   if (esp_now_init() != ESP_OK) {
@@ -221,17 +228,31 @@ void setup()
 void Servo_coin() 
 {
   for(int i=0;i<ans[0];i++) {
-    servo_five.write(0); // สั่งให้ Servo หมุนไปองศาที่ 0 ปัด
-    delay(1000); // หน่วงเวลา 1000ms
-    servo_five.write(90); // สั่งให้ Servo หมุนไปองศาที่ 90
-    delay(1000); // หน่วงเวลา 1000ms
+    if (degree_five == 0) {
+      degree_five = 90;
+      servo_five.write(degree_five); // สั่งให้ Servo หมุนไปองศาที่ 0 ปัด
+      delay(1000); // หน่วงเวลา 1000ms
+    }else if (degree_five == 90) {
+      degree_five = 0;
+      servo_five.write(degree_five); // สั่งให้ Servo หมุนไปองศาที่ 0 ปัด
+      delay(1000); // หน่วงเวลา 1000ms
+    }
+    //servo_five.write(90); // สั่งให้ Servo หมุนไปองศาที่ 90
+    //delay(1000); // หน่วงเวลา 1000ms
     printf("count_coin_5 = %d\n",i+1);
   }  
   for(int j=0;j<ans[1];j++) {
-    servo_one.write(0); // สั่งให้ Servo หมุนไปองศาที่ 0
-    delay(1000); // หน่วงเวลา 1000ms
-    servo_one.write(90); // สั่งให้ Servo หมุนไปองศาที่ 90
-    delay(1000); // หน่วงเวลา 1000ms
+    if (degree_one == 0) {
+      degree_one = 90;
+      servo_one.write(degree_one); // สั่งให้ Servo หมุนไปองศาที่ 0 ปัด
+      delay(1000); // หน่วงเวลา 1000ms
+    }else if (degree_one == 90) {
+      degree_one = 0;
+      servo_one.write(degree_one); // สั่งให้ Servo หมุนไปองศาที่ 0 ปัด
+      delay(1000); // หน่วงเวลา 1000ms
+    }
+    //servo_one.write(90); // สั่งให้ Servo หมุนไปองศาที่ 90
+    //delay(1000); // หน่วงเวลา 1000ms
     printf("count_coin_1 = %d\n",j+1);
   }
 }
@@ -251,14 +272,36 @@ void loop()
     }
   }
   delay(5000);
+  
+  if (degree_one == 0) {
+    degree_one = 180;
+    servo_one.write(degree_one); // สั่งให้ Servo หมุนไปองศาที่ 0 ปัด
+    delay(1000); // หน่วงเวลา 1000ms
+  }else if (degree_one == 180) {
+    degree_one = 0;
+    servo_one.write(degree_one); // สั่งให้ Servo หมุนไปองศาที่ 0 ปัด
+    delay(1000); // หน่วงเวลา 1000ms
+  }
+  if (status_five == 0 || status_one == 0) {
+    scoin.state = 12;
+    scoin.state_1 = status_one;
+    scoin.state_5 = status_five;
+    esp_err_t result = esp_now_send(ViewAddress, (uint8_t *) &scoin, sizeof(scoin));  //ส่งหาวิว
+    if (result == ESP_OK) {
+      Serial.println("Sent state_12 to View with success");
+    }else {
+      Serial.println("Error sending staus_12 to View");
+    }
+  }
+  delay(2000);
   */
 }
 
 void Fill_coin() {
   status_one = 1;
-  coin_one = 20;
+  coin_one = 5;
   status_five = 1;
-  coin_five = 20;
+  coin_five = 5;
   //scanf("%d",&status_five);
   //scanf("%d",&status_one); //เปลี่ยนเป็นรับค่าจากบอร์ดอื่น
   printf("status_five: %d",status_five);
